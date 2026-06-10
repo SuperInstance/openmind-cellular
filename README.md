@@ -6,7 +6,7 @@ Each computation cell adapts its processing strategy based on what's available *
 
 ## The Idea: Cellular Computation
 
-Biological cells adapt to their environment. A muscle cell uses different metabolic pathways depending on oxygen availability — aerobic when oxygen is plentiful, anaerobic when it's not. Neither pathway is "better"; they're both essential, and the cell seamlessly switches between them.
+Biological cells adapt to their environment. A muscle cell uses different metabolic pathways depending on oxygen availability — aerobic when oxygen is plentiful, anaerobic when it's not. Neither pathway is "better"; they're both essential, and the cell switches between them.
 
 `openmind-cellular` brings this to Jupyter notebooks. Instead of writing `if torch.cuda.is_available(): ...` everywhere, you write your computation once and the system adapts:
 

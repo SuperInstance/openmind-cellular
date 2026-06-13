@@ -1,73 +1,109 @@
-# openmind-cellular
+# OpenMind Cellular
 
-**Resource-adaptive Jupyter computation layer.**
+**OpenMind Cellular** is a Python resource-adaptive computation layer for Jupyter notebooks that dynamically selects processing strategies based on real-time hardware availability — GPU, cloud APIs, cached models, or hardware sensors.
 
-Each computation cell adapts its processing strategy based on what's available *right now* — GPU, cloud APIs, cached models, or hardware sensors. No more crashes because the notebook expected a GPU that isn't there.
+## Why It Matters
 
-## The Idea: Cellular Computation
+Modern ML notebooks crash when expected hardware is missing. A training pipeline developed on an RTX 4090 fails on a laptop without CUDA. OpenMind Cellular solves this by treating computation like biological cellular metabolism: each "cell" (function) adapts its processing pathway to available resources, just as muscle cells switch between aerobic and anaerobic respiration based on oxygen availability. The same pipeline runs on a gaming PC (full GPU training), a laptop (cloud API inference), or offline (cached predictions from muscle memory) — always producing correct results.
 
-Biological cells adapt to their environment. A muscle cell uses different metabolic pathways depending on oxygen availability — aerobic when oxygen is plentiful, anaerobic when it's not. Neither pathway is "better"; they're both essential, and the cell switches between them.
+## How It Works
 
-`openmind-cellular` brings this to Jupyter notebooks. Instead of writing `if torch.cuda.is_available(): ...` everywhere, you write your computation once and the system adapts:
+### Resource Probing
+
+The `probe()` function inspects available computation resources at call time:
+
+```
+GPU available?     → CUDA device count, VRAM
+Cloud API reachable? → network latency check
+Cached model exists? → filesystem lookup
+Hardware sensors?   → serial/I2C device scan
+```
+
+Probe cost: **O(1)** — a fixed set of system queries with timeouts.
+
+### Adaptive Dispatch
+
+Each `@cell(resource_aware=True)` decorator wraps the function in a strategy selector:
+
+```
+strategy = select_strategy(probe())
+  if GPU:          return gpu_strategy
+  elif cloud_api:  return cloud_strategy
+  elif cache:      return cached_strategy
+  else:            return fallback_strategy
+```
+
+Strategy selection is **O(1)** — a priority-ordered cascade.
+
+### Sense-or-Simulate
+
+The `sense_or_simulate()` function provides transparent data sourcing:
+
+- **Real sensor**: ESP32 bridge via `openmind-esp32-bridge` (cost: network round-trip)
+- **Simulation**: Cached or generated data matching sensor characteristics
+
+### Train-or-Load
+
+`train_or_load()` implements the cache-or-compute tradeoff:
+
+```
+if cache_valid(model_id):
+    return load(cache_path)     # O(1) — disk read
+else:
+    model = train(data)          # O(N·E) — N samples, E epochs
+    save(cache_path, model)
+    return model
+```
+
+### Metabolic Pathways
+
+The `metabolism` module models energy/compute budget allocation, analogous to ATP management in biological cells:
+
+```
+budget = probe_compute_budget()
+if budget > threshold_high:  full_training()
+elif budget > threshold_low: quantized_training()
+else:                        inference_only()
+```
+
+## Quick Start
 
 ```python
 from openmind_cellular import cell, probe, sense_or_simulate, train_or_load, infer_adaptive
 
 @cell(resource_aware=True, fallback="cached")
 def my_pipeline():
-    resources = probe()  # What's available right now?
-    data = sense_or_simulate("temperature", duration="1h")  # Real sensor or realistic sim
-    model = train_or_load("my-model", data=data)  # Train or load from cache
-    return infer_adaptive(model, data)  # GPU, API, or cached inference
+    resources = probe()
+    data = sense_or_simulate("temperature", duration="1h")
+    model = train_or_load("my-model", data=data)
+    return infer_adaptive(model, data)
 
-results = my_pipeline()  # Works on your gaming PC, your laptop, or offline
-```
-
-The same pipeline runs differently (but correctly) on:
-- **Gaming PC with RTX 4090**: Full training on GPU with real data
-- **Laptop on WiFi**: Cloud API inference with simulated data
-- **Offline Raspberry Pi**: Cached model predictions from muscle memory
-- **Workshop bench**: Real ESP32 sensor data feeding a hardware loop
-
-## Five Metabolic Pathways
-
-| Pathway | Trigger | What Happens |
-|---------|---------|-------------|
-| **Full Train** | GPU + RAM + time | Train model from scratch on local hardware |
-| **Transfer** | GPU available | Fine-tune pretrained model |
-| **Cloud Inference** | API key + network | Send data to cloud API for inference |
-| **Muscle Memory** | Nothing else | Use cached models and predictions |
-| **Hardware Loop** | ESP32/sensor online | Read real sensor data, local processing |
-
-The system automatically selects the best pathway. You can override with explicit strategies, but the adaptive default usually does the right thing.
-
-## Muscle Memory
-
-When models are trained, they're cached in `~/.openmind/muscle_memory/`. When you run offline or without a GPU, the system loads these cached models instead of crashing. This is "muscle memory" — the computation remembers what it learned and can still function without full resources.
-
-The `DataTide` class manages the ebb and flow between simulated and real data. When real data arrives, it calibrates the simulation parameters so future simulated data is more realistic.
-
-## Installation
-
-```bash
-pip install openmind-cellular
-
-# Optional: GPU support
-pip install openmind-cellular[gpu]
-
-# Optional: Cloud API support
-pip install openmind-cellular[api]
+results = my_pipeline()  # Adapts to any environment
 ```
 
 ## API
 
-- `probe()` — Take a resource snapshot (< 1 second)
-- `select_path(task, resources)` — Choose metabolic pathway
-- `train_or_load(model_name, data)` — Train or load from cache
-- `sense_or_simulate(source, duration)` — Real sensors or simulation
-- `infer_adaptive(model, data)` — Adaptive inference
-- `DataTide` — Simulation ↔ reality bridge
-- `@cell(resource_aware=True)` — Decorator for resource-aware cells
+| Function | Description |
+|----------|-------------|
+| `@cell(resource_aware, fallback)` | Decorator making a function resource-adaptive |
+| `probe()` | Inspect GPU, cloud, cache, and sensor availability |
+| `sense_or_simulate(name, duration)` | Real sensor data or realistic simulation |
+| `train_or_load(model_id, data)` | Train fresh or load from cache |
+| `infer_adaptive(model, data)` | GPU/API/cached inference selection |
+
+Modules: `cell`, `probe`, `metabolism`, `dataflow`, `train`
+
+## Architecture Notes
+
+OpenMind Cellular is the computation layer of the OpenMind nervous system in SuperInstance. In γ + η = C, it represents γ (growth — maximizing computation quality given available resources) modulated by η (avoidance — gracefully degrading when resources are scarce). The ESP32 bridge integration connects biological-inspired computation to real-world sensors.
+
+See [ARCHITECTURE.md](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md) for the OpenMind architecture.
+
+## References
+
+1. Foster, I. et al. (2017). "Cloud Computing for Scientific Research." *Communications of the ACM*.
+2. Kluyver, T. et al. (2016). "Jupyter Notebooks — a publishing format for reproducible computational workflows." *Positioning and Power in Academic Publishing*.
+3. Dean, J. et al. (2012). "Large Scale Distributed Deep Networks." *NeurIPS*.
 
 ## License
 
